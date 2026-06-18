@@ -44,6 +44,10 @@ jobs:
         with:
           node-version: 20
 
+      - name: Build core (so its dist is copied into the desktop app)
+        working-directory: kalit-code-core
+        run: npm install --no-audit --no-fund && npm run build
+
       - name: Install deps (real copy of core, not a symlink)
         working-directory: kalit-code-desktop
         run: npm install --install-links --no-audit --no-fund
