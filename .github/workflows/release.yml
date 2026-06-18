@@ -44,7 +44,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install (real copy of file: core)
+      - name: Install deps (real copy of core, not a symlink)
         working-directory: kalit-code-desktop
         run: npm install --install-links --no-audit --no-fund
 
