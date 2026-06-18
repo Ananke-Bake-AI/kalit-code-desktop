@@ -1,0 +1,24 @@
+{
+  "name": "kalit-code-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ChatGPT-style Electron front-end for the kalit-code agent (full PC access, your own model via kalit-model-server).",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "npm run build && electron dist/main.js",
+    "dev": "npm run build && electron dist/main.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "kalit-code-core": "file:../kalit-code-core"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "electron": "^33.2.0",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.17"
+  }
+}
