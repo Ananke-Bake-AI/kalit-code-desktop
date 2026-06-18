@@ -1,0 +1,58 @@
+name: Release
+
+# Build macOS + Windows installers and publish them to a GitHub Release
+# whenever a tag like v0.1.0 is pushed.
+#
+#   git tag v0.1.0 && git push origin v0.1.0
+#
+# kalit-code-desktop depends on the sibling kalit-code-core via a
+# `file:../kalit-code-core` path, so we check both repos out side by side.
+# If kalit-code-core is PRIVATE, add a repo-scoped PAT as the secret
+# CORE_TOKEN (otherwise the default GITHUB_TOKEN can't read the other repo).
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout desktop
+        uses: actions/checkout@v4
+        with:
+          path: kalit-code-desktop
+
+      - name: Checkout core (sibling)
+        uses: actions/checkout@v4
+        with:
+          repository: Ananke-Bake-AI/kalit-code-core
+          path: kalit-code-core
+          token: ${{ secrets.CORE_TOKEN || github.token }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install (real copy of file: core)
+        working-directory: kalit-code-desktop
+        run: npm install --install-links --no-audit --no-fund
+
+      - name: Build + package + publish
+        working-directory: kalit-code-desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # unsigned build, no notarization
+        run: |
+          npm run build
+          npx electron-builder --publish always

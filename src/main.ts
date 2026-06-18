@@ -10,6 +10,9 @@ import os from 'os';
 import { promises as fs } from 'fs';
 import { runTurn, checkServer, fetchModels, type AgentConfig } from 'kalit-code-core';
 
+/** App icon (PNG for window/dock; assets/icon.icns is used when packaging). */
+const ICON_PNG = path.join(__dirname, '..', 'assets', 'icon.png');
+
 // ─── Persisted config ───────────────────────────────────────
 
 type AppConfig = AgentConfig;
@@ -51,6 +54,7 @@ function createWindow(): void {
     minHeight: 480,
     backgroundColor: '#0f1115',
     title: 'kalit-code',
+    icon: ICON_PNG,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -75,7 +79,8 @@ ipcMain.handle('config:set', async (_e, patch: Partial<AppConfig>) => {
   return config;
 });
 
-ipcMain.handle('models:list', () => fetchModels(config.serverUrl, config.token));
+ipcMain.handle('models:list', (_e, args: { serverUrl?: string; token?: string } = {}) =>
+  fetchModels(args.serverUrl || config.serverUrl, args.token || config.token));
 
 ipcMain.handle('server:health', () => checkServer(config.serverUrl));
 
@@ -106,6 +111,7 @@ ipcMain.handle('chat:send', async (e, prompt: string) => {
 // ─── Lifecycle ──────────────────────────────────────────────
 
 app.whenReady().then(async () => {
+  if (process.platform === 'darwin' && app.dock) app.dock.setIcon(ICON_PNG);
   await loadConfig();
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });

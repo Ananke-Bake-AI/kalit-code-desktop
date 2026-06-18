@@ -8,7 +8,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('kalit', {
   getConfig: () => ipcRenderer.invoke('config:get'),
   setConfig: (patch: Record<string, unknown>) => ipcRenderer.invoke('config:set', patch),
-  listModels: () => ipcRenderer.invoke('models:list'),
+  listModels: (serverUrl?: string, token?: string) => ipcRenderer.invoke('models:list', { serverUrl, token }),
   health: () => ipcRenderer.invoke('server:health'),
   send: (prompt: string) => ipcRenderer.invoke('chat:send', prompt),
   abort: () => ipcRenderer.invoke('chat:abort'),

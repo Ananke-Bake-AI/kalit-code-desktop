@@ -2,13 +2,18 @@
   "name": "kalit-code-desktop",
   "version": "0.1.0",
   "private": true,
+  "author": "Ananke-Bake-AI",
   "description": "ChatGPT-style Electron front-end for the kalit-code agent (full PC access, your own model via kalit-model-server).",
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc",
     "start": "npm run build && electron dist/main.js",
     "dev": "npm run build && electron dist/main.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "dist": "npm run build && electron-builder",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win",
+    "release": "npm run build && electron-builder -mw --publish always"
   },
   "dependencies": {
     "kalit-code-core": "file:../kalit-code-core"
@@ -16,7 +21,53 @@
   "devDependencies": {
     "@types/node": "^22.10.0",
     "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
     "typescript": "^5.7.2"
+  },
+  "build": {
+    "appId": "ai.kalit.code",
+    "productName": "kalit-code",
+    "directories": {
+      "output": "release",
+      "buildResources": "assets"
+    },
+    "files": [
+      "dist/**/*",
+      "renderer/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "**/node_modules/@anthropic-ai/**",
+      "**/node_modules/kalit-code-core/**"
+    ],
+    "mac": {
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.developer-tools",
+      "identity": null,
+      "target": [
+        { "target": "dmg", "arch": ["arm64", "x64"] },
+        { "target": "zip", "arch": ["arm64", "x64"] }
+      ]
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Ananke-Bake-AI",
+        "repo": "kalit-code-desktop"
+      }
+    ]
   },
   "engines": {
     "node": ">=18.17"

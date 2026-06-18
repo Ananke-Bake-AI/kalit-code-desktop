@@ -43,5 +43,29 @@ npm start          # builds (tsc) then launches Electron
 - Config persisted to the app's userData dir
 
 > ⚠️ Default autonomy is `bypassPermissions` — the agent edits files and runs
-> shell commands in the configured working directory without asking. Set it to
-> `plan` in Settings if you want it to propose first.
+> shell commands in the working directory without asking. (Working dir / autonomy
+> default sensibly and aren't in the simplified Settings panel; override via the
+> persisted `config.json` or `KALIT_CWD` / `KALIT_PERMISSION_MODE` env vars.)
+
+## Build & release
+
+Local package (macOS):
+
+```bash
+npm install --install-links     # real copy of ../kalit-code-core (asar-safe)
+npm run dist:mac                # → release/*.dmg + *.zip
+```
+
+Cross-platform release is automated. Pushing a tag builds macOS **and** Windows
+on GitHub Actions and publishes a GitHub Release:
+
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow (`.github/workflows/release.yml`) checks out `kalit-code-core` as a
+sibling so the `file:` dependency resolves on the runners. If that repo is
+**private**, add a repo-scoped PAT as the `CORE_TOKEN` Actions secret. Builds are
+**unsigned** (Gatekeeper/SmartScreen will warn on first launch).
+

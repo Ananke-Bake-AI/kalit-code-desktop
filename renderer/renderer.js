@@ -8,13 +8,12 @@ const messages = $('messages');
 const input = $('input');
 const sendBtn = $('sendBtn');
 const stopBtn = $('stopBtn');
-const modelChip = $('modelChip');
 const ctxFill = $('ctxFill');
 const ctxLabel = $('ctxLabel');
 
 let cfg = null;
 let streaming = false;
-let active = null; // { textEl, thinkEl } of the assistant message being built
+let active = null; // { bubble, textEl, thinkBody } of the assistant message being built
 
 // ─── helpers ────────────────────────────────────────────────
 
@@ -41,8 +40,7 @@ function setContext(pct) {
   const p = Math.max(0, Math.min(100, pct || 0));
   ctxFill.setAttribute('stroke-dasharray', `${p} ${100 - p}`);
   ctxLabel.textContent = `${p}%`;
-  const col = p >= 85 ? 'var(--red)' : p >= 65 ? 'var(--yellow)' : 'var(--accent)';
-  ctxFill.style.stroke = col;
+  ctxFill.style.stroke = p >= 85 ? 'var(--red)' : p >= 65 ? 'var(--yellow)' : 'var(--accent)';
 }
 
 // ─── chat streaming ─────────────────────────────────────────
@@ -73,19 +71,18 @@ k.onEvent((ev) => {
     scroll();
   } else if (ev.type === 'result') {
     if (ev.context) setContext(ev.context.percent);
-    if (ev.isError && ev.text) {
-      const e = document.createElement('div');
-      e.className = 'err';
-      e.textContent = `✗ ${ev.text}`;
-      active.bubble.append(e);
-    }
+    if (ev.isError && ev.text) appendErr(active.bubble, ev.text);
   } else if (ev.type === 'error') {
-    const e = document.createElement('div');
-    e.className = 'err';
-    e.textContent = `✗ ${ev.message}`;
-    active.bubble.append(e);
+    appendErr(active.bubble, ev.message);
   }
 });
+
+function appendErr(bubble, msg) {
+  const e = document.createElement('div');
+  e.className = 'err';
+  e.textContent = `✗ ${msg}`;
+  bubble.append(e);
+}
 
 k.onDone(() => { streaming = false; active = null; setSending(false); });
 
@@ -107,7 +104,7 @@ async function send() {
   a.bubble.append(textEl);
   active = { bubble: a.bubble, textEl, thinkBody: null };
   setSending(true);
-  try { await k.send(prompt); } catch (e) { /* done event handles UI */ }
+  try { await k.send(prompt); } catch { /* done event handles UI */ }
 }
 
 // ─── input behaviour ────────────────────────────────────────
@@ -129,7 +126,7 @@ $('resetBtn').addEventListener('click', async () => {
   setContext(0);
 });
 
-// ─── settings ───────────────────────────────────────────────
+// ─── settings (server + token only) ─────────────────────────
 
 const settings = $('settings');
 $('settingsBtn').addEventListener('click', openSettings);
@@ -140,30 +137,8 @@ async function openSettings() {
   cfg = await k.getConfig();
   $('cfgServerUrl').value = cfg.serverUrl || '';
   $('cfgToken').value = cfg.token || '';
-  $('cfgCwd').value = cfg.cwd || '';
-  $('cfgPerm').value = cfg.permissionMode || 'bypassPermissions';
-  $('cfgCtx').value = cfg.contextWindow || 200000;
-  // model dropdown
-  const sel = $('cfgModel');
-  sel.innerHTML = '';
-  const ids = await k.listModels();
-  if (ids.length === 0) {
-    const o = document.createElement('option');
-    o.value = cfg.model; o.textContent = cfg.model + '  (server unreachable)';
-    sel.append(o);
-  } else {
-    for (const id of ids) {
-      const o = document.createElement('option');
-      o.value = id; o.textContent = id;
-      if (id === cfg.model) o.selected = true;
-      sel.append(o);
-    }
-    if (!ids.includes(cfg.model)) {
-      const o = document.createElement('option');
-      o.value = cfg.model; o.textContent = cfg.model + '  (current)';
-      o.selected = true; sel.append(o);
-    }
-  }
+  $('cfgHint').textContent = '';
+  $('cfgHint').className = 'hint';
   settings.hidden = false;
 }
 
@@ -171,25 +146,22 @@ async function saveSettings() {
   const patch = {
     serverUrl: $('cfgServerUrl').value.trim(),
     token: $('cfgToken').value,
-    model: $('cfgModel').value,
-    cwd: $('cfgCwd').value.trim(),
-    permissionMode: $('cfgPerm').value,
-    contextWindow: Number($('cfgCtx').value) || 200000,
   };
   cfg = await k.setConfig(patch);
-  settings.hidden = true;
-  refreshHeader();
+  // Verify reachability and give immediate feedback.
+  const h = await k.health();
+  const hint = $('cfgHint');
+  if (h.ok) {
+    hint.textContent = '✓ server reachable';
+    hint.className = 'hint';
+    settings.hidden = true;
+  } else {
+    hint.textContent = '✗ server unreachable — check URL / token';
+    hint.className = 'hint err';
+  }
 }
 
 // ─── init ───────────────────────────────────────────────────
 
-async function refreshHeader() {
-  cfg = await k.getConfig();
-  modelChip.textContent = cfg.model || '—';
-  const h = await k.health();
-  modelChip.title = h.ok ? `server: online · ${cfg.serverUrl}` : `server: UNREACHABLE · ${cfg.serverUrl}`;
-  modelChip.style.color = h.ok ? '' : 'var(--red)';
-}
-
 setContext(0);
-refreshHeader();
+(async () => { cfg = await k.getConfig(); })();
